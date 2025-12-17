@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProDev Resume Builder (Smart Links)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #2980b9;
+            --bg-color: #f0f2f5;
+            --sidebar-width: 500px;
+            --sidebar-bg: #f4f4f4;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- EDITOR (LEFT) --- */
+        .editor-panel {
+            width: var(--sidebar-width);
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .editor-header {
+            padding: 15px 20px;
+            background: #222;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-controls { display: flex; gap: 10px; align-items: center; }
+
+        .tool-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
+        }
+        input[type="color"] { border: none; width: 30px; height: 30px; cursor: pointer; background: none; padding: 0; }
+
+        .editor-content { padding: 20px; overflow-y: auto; flex: 1; }
+        
+        .section-group { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .section-group h3 { font-size: 0.9rem; text-transform: uppercase; color: #555; margin-bottom: 15px; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
+
+        .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .form-group { margin-bottom: 12px; flex: 1; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #555; }
+        
+        input, textarea, select {
+            width: 100%; padding: 8px 12px; border: 1px solid #ccc;
+            border-radius: 4px; font-size: 0.9rem; transition: 0.2s;
+        }
+        input:focus, textarea:focus { border-color: var(--accent-color); outline: none; }
+        textarea { resize: vertical; height: 70px; }
+
+        /* Social Row Layout */
+        .social-row { display: flex; gap: 5px; margin-bottom: 8px; align-items: center; }
+        .social-select { width: 30% !important; flex-shrink: 0; }
+        
+        /* The Base URL Input (Prefix) */
+        .social-base { 
+            width: 30% !important; 
+            background: #f8f9fa; 
+            color: #666; 
+            font-size: 0.8rem;
+            border-right: none;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        
+        /* The Username Input */
+        .social-user { 
+            flex: 1; 
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        .social-base.hidden { display: none; }
+        .social-user.full-width { width: 70% !important; border-radius: 4px; }
+
+        .file-upload-btn { display: none; margin-top: 5px; font-size: 0.8rem; }
+        
+        /* Dynamic Lists */
+        .dynamic-list { display: flex; flex-direction: column; gap: 10px; }
+        .dynamic-item {
+            background: #f8f9fa; padding: 15px; border: 1px solid #e9ecef;
+            border-radius: 6px; position: relative;
+        }
+        
+        .item-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; }
+        .btn-mini { background: #eee; color: #555; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-mini:hover { background: #ddd; }
+        .btn-del { background: #ff7675; color: white; }
+
+        .btn-add {
+            background: #e8f4fd; color: var(--accent-color); width: 100%;
+            padding: 8px; margin-top: 5px; border: 1px dashed var(--accent-color); cursor: pointer;
+        }
+        
+        .btn-add-section {
+            background: var(--primary-color); color: white; width: 100%;
+            padding: 10px; margin-top: 20px; border: none; border-radius: 4px; cursor: pointer;
+        }
+
+        .action-bar { padding: 15px; border-top: 1px solid #eee; background: white; display: flex; gap: 10px; }
+        .btn-download { flex: 1; background: var(--primary-color); color: white; border: none; border-radius: 4px; padding: 12px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
+        .btn-reset { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 0 15px; cursor: pointer; }
+
+        /* --- PREVIEW (RIGHT) --- */
+        .preview-panel {
+            flex: 1; padding: 40px; overflow-y: auto; background: #525659;
+            display: flex; justify-content: center;
+        }
+
+        #resume {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 0;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            display: flex;
+            color: #333;
+            background-image: linear-gradient(to right, var(--sidebar-bg) 32%, white 32%);
+            background-color: white;
+        }
+
+        .resume-sidebar { width: 32%; padding: 30px 20px; display: flex; flex-direction: column; }
+        .resume-main { width: 68%; padding: 30px 30px; }
+
+        .profile-img-container {
+            width: 150px; height: 150px; margin: 0 auto 20px auto; 
+            border-radius: 50%; overflow: hidden; border: 3px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none; background-size: cover; background-position: center;
+        }
+
+        h1 { margin: 0; font-size: 2.2rem; line-height: 1.1; color: var(--primary-color); text-transform: uppercase; }
+        .role { color: var(--accent-color); font-size: 1.1rem; margin-top: 5px; font-weight: 500; margin-bottom: 25px; }
+        
+        .section-title {
+            font-size: 0.95rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--primary-color);
+            border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 25px; margin-bottom: 15px;
+        }
+        
+        a { color: inherit; text-decoration: none; }
+        .contact-link:hover { color: var(--accent-color); text-decoration: underline; }
+        .resume-link { color: var(--accent-color); }
+
+        .contact-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.85rem; word-break: break-all; }
+        
+        .icon-box {
+            width: 20px; display: flex; justify-content: center; align-items: center; color: var(--accent-color);
+        }
+        .icon-box img { width: 16px; height: 16px; object-fit: contain; }
+
+        .tag-container { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tag { background: white; border: 1px solid #ccc; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 500; }
+
+        .res-item { margin-bottom: 18px; }
+        .res-title { font-weight: 700; font-size: 1rem; color: #222; }
+        .res-subtitle { font-weight: 500; font-size: 0.9rem; color: #555; margin-bottom: 4px; }
+        .res-date { font-size: 0.8rem; color: #777; white-space: nowrap; font-style: italic; }
+        .res-desc { font-size: 0.9rem; color: #444; line-height: 1.5; white-space: pre-line; margin-top: 5px; }
+        .res-desc ul { margin: 5px 0; padding-left: 20px; }
+        
+        .res-header { display: flex; justify-content: space-between; align-items: baseline; }
+        .project-link { font-size: 0.8rem; margin-left: 10px; color: var(--accent-color); }
+        .tech-stack { font-size: 0.8rem; color: #666; margin-bottom: 5px; font-style: italic; }
+
+        .hidden { display: none !important; }
+
+        @media print {
+            body { height: auto; background: white; overflow: visible; }
+            .editor-panel, .preview-panel { display: none; }
+            .preview-panel { display: block; padding: 0; width: 100%; }
+            #resume { width: 100%; box-shadow: none; min-height: 100vh; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LEFT: EDITOR -->
+    <div class="editor-panel">
+        <div class="editor-header">
+            <h2>Resume Builder</h2>
+            <div class="header-controls">
+                <input type="color" id="color-picker" value="#2c3e50" title="Primary Color" onchange="updateColors()">
+                <select id="lang-selector" class="tool-btn" onchange="changeLanguage()">
+                    <option value="en">🇺🇸 EN</option>
+                    <option value="de">🇩🇪 DE</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="editor-content">
+            <!-- Profile Info -->
+            <div class="section-group">
+                <h3 data-lbl="info">Profile</h3>
+                <div class="form-group"><label>Profile Picture</label><input type="file" id="inp-img" accept="image/*" onchange="loadPhoto(event)"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Full Name</label><input type="text" id="inp-name" placeholder="John Doe" oninput="saveAndRender()"></div>
+                    <div class="form-group"><label>Job Title</label><input type="text" id="inp-role" placeholder="Developer" oninput="saveAndRender()"></div>
+                </div>
+            </div>
+
+            <!-- CONTACT & SOCIALS -->
+            <div class="section-group">
+                <h3 data-lbl="contact">Contact & Socials</h3>
+                <div id="list-contact" class="dynamic-list"></div>
+                <button class="btn-add" onclick="addContact()">+ Add Link / Field</button>
+            </div>
+
+            <div class="section-group">
+                <h3 data-lbl="summary">Summary</h3>
+                <textarea id="inp-summary" placeholder="Summary..." oninput="saveAndRender()"></textarea>
+            </div>
+
+            <div class="section-group">
+                <h3 data-lbl="skills">Skills & Languages</h3>
+                <div class="form-group"><label>Tech Skills</label><textarea id="inp-skills" placeholder="JS, React..." oninput="saveAndRender()" style="height:50px"></textarea></div>
+                <div class="form-group"><label>Languages</label><input type="text" id="inp-langs" placeholder="English, German" oninput="saveAndRender()"></div>
+            </div>
+
+            <!-- Standard Sections -->
+            <div class="section-group">
+                <h3 data-lbl="projects">Projects</h3>
+                <div id="list-projects" class="dynamic-list"></div>
+                <button class="btn-add" onclick="addItem('projects')">+ Add Project</button>
+            </div>
+
+            <div class="section-group">
+                <h3 data-lbl="experience">Experience</h3>
+                <div id="list-exp" class="dynamic-list"></div>
+                <button class="btn-add" onclick="addItem('experience')">+ Add Position</button>
+            </div>
+
+            <div class="section-group">
+                <h3 data-lbl="education">Education</h3>
+                <div id="list-edu" class="dynamic-list"></div>
+                <button class="btn-add" onclick="addItem('education')">+ Add Education</button>
+            </div>
+
+            <!-- Custom Sections -->
+            <div id="custom-sections-area"></div>
+            <button class="btn-add-section" onclick="addCustomSection()">+ Add New Section</button>
+
+        </div>
+
+        <div class="action-bar">
+            <button class="btn-reset" onclick="clearData()" title="Reset"><i class="fas fa-trash"></i></button>
+            <button class="btn-download" onclick="window.print()">
+                <i class="fas fa-file-pdf"></i> <span id="btn-dl-text">Download PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- RIGHT: PREVIEW -->
+    <div class="preview-panel">
+        <div id="resume">
+            <div class="resume-sidebar">
+                <div id="out-img-container" class="profile-img-container"></div>
+                
+                <div id="sec-contact">
+                    <div class="section-title" data-i18n="contact">Contact</div>
+                    <div id="out-contact-list"></div>
+                </div>
+
+                <div id="sec-skills">
+                    <div class="section-title" data-i18n="skills">Skills</div>
+                    <div id="out-skills" class="tag-container"></div>
+                </div>
+
+                <div id="sec-langs">
+                    <div class="section-title" data-i18n="languages">Languages</div>
+                    <div id="out-langs" class="tag-container"></div>
+                </div>
+            </div>
+
+            <div class="resume-main">
+                <h1 id="out-name">Your Name</h1>
+                <div class="role" id="out-role">Your Role</div>
+
+                <div id="sec-summary">
+                    <div class="section-title" data-i18n="profile">Profile</div>
+                    <div id="out-summary" class="res-desc"></div>
+                </div>
+
+                <div id="sec-projects">
+                    <div class="section-title" data-i18n="projects">Projects</div>
+                    <div id="out-projects"></div>
+                </div>
+
+                <div id="sec-exp">
+                    <div class="section-title" data-i18n="experience">Experience</div>
+                    <div id="out-exp"></div>
+                </div>
+
+                <div id="sec-edu">
+                    <div class="section-title" data-i18n="education">Education</div>
+                    <div id="out-edu"></div>
+                </div>
+
+                <div id="out-custom-sections"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- CONFIGURATION --- */
+        // type: 'direct' (Email, Phone) OR 'social' (Github, LinkedIn)
+        const socialConfig = {
+            'email': { label: 'Email', icon: 'fas fa-envelope', base: '', type: 'direct' },
+            'phone': { label: 'Phone', icon: 'fas fa-phone', base: '', type: 'direct' },
+            'location': { label: 'Location', icon: 'fas fa-map-marker-alt', base: '', type: 'direct' },
+            'website': { label: 'Website', icon: 'fas fa-globe', base: 'https://', type: 'direct' },
+            'github': { label: 'GitHub', icon: 'fab fa-github', base: 'github.com/', type: 'social' },
+            'linkedin': { label: 'LinkedIn', icon: 'fab fa-linkedin', base: 'linkedin.com/in/', type: 'social' },
+            'twitter': { label: 'X (Twitter)', icon: 'fab fa-x-twitter', base: 'x.com/', type: 'social' },
+            'instagram': { label: 'Instagram', icon: 'fab fa-instagram', base: 'instagram.com/', type: 'social' },
+            'discord': { label: 'Discord', icon: 'fab fa-discord', base: '', type: 'social' },
+            'signal': { label: 'Signal', icon: 'fab fa-signal-messenger', base: 'signal.me/#p/', type: 'social' },
+            'youtube': { label: 'YouTube', icon: 'fab fa-youtube', base: 'youtube.com/@', type: 'social' },
+            'custom': { label: '⬆️ Custom', icon: '', base: '', type: 'social' }
+        };
+
+        const translations = {
+            en: { contact: "Contact", education: "Education", skills: "Tech Skills", languages: "Languages", profile: "Profile", projects: "Projects", experience: "Experience", download: "Download PDF" },
+            de: { contact: "Kontakt", education: "Ausbildung", skills: "Skills", languages: "Sprachen", profile: "Profil", projects: "Projekte", experience: "Erfahrung", download: "PDF Herunterladen" }
+        };
+        let currentLang = 'en';
+
+        /* --- INITIALIZATION --- */
+        window.onload = function() {
+            loadFromStorage();
+            if(document.querySelectorAll('#list-contact .dynamic-item').length === 0) {
+                // Defaults
+                addContact('email');
+                addContact('phone');
+                addContact('location');
+            }
+            if(document.querySelectorAll('#list-exp .dynamic-item').length === 0) addItem('experience');
+            if(document.querySelectorAll('#list-edu .dynamic-item').length === 0) addItem('education');
+            saveAndRender();
+        };
+
+        /* --- CONTACT LOGIC --- */
+        function generateId() { return Date.now() + Math.random().toString(36).substr(2, 9); }
+
+        function addContact(preKey = 'email', preBase = '', preVal = '', customImg = null) {
+            const id = generateId();
+            let opts = '';
+            // Generate dropdown options from config
+            for (const [key, val] of Object.entries(socialConfig)) {
+                opts += `<option value="${key}" ${key === preKey ? 'selected' : ''}>${val.label}</option>`;
+            }
+
+            // Determine visibility of Base URL field based on initial selection
+            const conf = socialConfig[preKey];
+            const isSocial = conf.type === 'social';
+            const baseVal = preBase !== '' ? preBase : conf.base;
+
+            const html = `
+                <div class="dynamic-item" id="${id}" data-custom-icon="${customImg || ''}">
+                    <div class="item-controls"><button class="btn-mini btn-del" onclick="removeItem('${id}')">x</button></div>
+                    <div class="social-row">
+                        <select class="social-select" onchange="handleSocialChange(this, '${id}')">${opts}</select>
+                        
+                        <!-- Base URL Input (Hidden for direct types like Email/Phone) -->
+                        <input type="text" class="social-base ${isSocial ? '' : 'hidden'}" placeholder="Base URL" value="${baseVal}" oninput="saveAndRender()">
+                        
+                        <!-- Username / Value Input -->
+                        <input type="text" class="social-user ${isSocial ? '' : 'full-width'}" placeholder="Username / Value" value="${preVal}" oninput="saveAndRender()">
+                    </div>
+                    <input type="file" class="file-upload-btn" accept="image/*" onchange="handleCustomIcon(this, '${id}')">
+                </div>`;
+            
+            document.getElementById('list-contact').insertAdjacentHTML('beforeend', html);
+            if(preKey === 'custom') document.querySelector(`#${id} .file-upload-btn`).style.display = 'block';
+            saveAndRender();
+        }
+
+        function handleSocialChange(select, id) {
+            const key = select.value;
+            const item = document.getElementById(id);
+            const conf = socialConfig[key];
+            const baseInput = item.querySelector('.social-base');
+            const userInput = item.querySelector('.social-user');
+            const fileInput = item.querySelector('.file-upload-btn');
+
+            // 1. Update Base URL with default from config (if not custom)
+            if(key !== 'custom') {
+                baseInput.value = conf.base;
+            }
+
+            // 2. Toggle Layout (Direct vs Social)
+            if(conf.type === 'social') {
+                baseInput.classList.remove('hidden');
+                userInput.classList.remove('full-width');
+                userInput.placeholder = "Username";
+            } else {
+                baseInput.classList.add('hidden');
+                userInput.classList.add('full-width');
+                userInput.placeholder = "Value (e.g. john@doe.com)";
+            }
+
+            // 3. Handle Custom Icon Upload
+            if(key === 'custom') {
+                fileInput.style.display = 'block';
+            } else {
+                fileInput.style.display = 'none';
+                item.setAttribute('data-custom-icon', '');
+            }
+            saveAndRender();
+        }
+
+        function handleCustomIcon(input, id) {
+            const file = input.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById(id).setAttribute('data-custom-icon', e.target.result);
+                    saveAndRender();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        /* --- STANDARD ITEMS & CUSTOM SECTIONS --- */
+        function addItem(type, values = null) {
+            const id = generateId();
+            let content = '', targetId = '';
+
+            if(type === 'projects') {
+                targetId = 'list-projects';
+                content = `
+                    <div class="form-group"><input type="text" class="i-title" placeholder="Project Name" value="${values?.['i-title']||''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><input type="text" class="i-link" placeholder="URL" value="${values?.['i-link']||''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><input type="text" class="i-stack" placeholder="Tech Stack" value="${values?.['i-stack']||''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><textarea class="i-desc" placeholder="Description..." oninput="saveAndRender()">${values?.['i-desc']||''}</textarea></div>`;
+            } else if(type === 'experience') {
+                targetId = 'list-exp';
+                content = `
+                    <div class="form-group"><input type="text" class="i-title" placeholder="Job Title" value="${values?.['i-title']||''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><input type="text" class="i-company" placeholder="Company" value="${values?.['i-company']||''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><input type="text" class="i-date" placeholder="Date" value="${values?.['i-date']||''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><textarea class="i-desc" placeholder="Responsibilities..." oninput="saveAndRender()">${values?.['i-desc']||''}</textarea></div>`;
+            } else if(type === 'education') {
+                targetId = 'list-edu';
+                content = `
+                    <div class="form-group"><input type="text" class="i-degree" placeholder="Degree" value="${values?.['i-degree']||''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><input type="text" class="i-school" placeholder="School" value="${values?.['i-school']||''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><input type="text" class="i-date" placeholder="Date" value="${values?.['i-date']||''}" oninput="saveAndRender()"></div>`;
+            }
+            
+            document.getElementById(targetId).insertAdjacentHTML('beforeend', `<div class="dynamic-item" id="${id}"><div class="item-controls"><button class="btn-mini btn-del" onclick="removeItem('${id}')">x</button></div>${content}</div>`);
+            if(!values) saveAndRender();
+        }
+
+        function addCustomSection(existingId = null, titleVal = '', items = []) {
+            const id = existingId || 'sec-' + generateId();
+            const container = document.getElementById('custom-sections-area');
+            const html = `
+                <div class="section-group custom-section-block" id="${id}">
+                    <h3>
+                        <input type="text" class="sec-title-inp" placeholder="Section Title" value="${titleVal}" oninput="saveAndRender()" style="width:70%; border:none; border-bottom:1px solid #ccc; background:transparent; font-weight:bold; color:var(--primary-color)">
+                        <button class="btn-mini btn-del" onclick="removeSection('${id}')">Remove</button>
+                    </h3>
+                    <div class="dynamic-list" id="list-${id}"></div>
+                    <button class="btn-add" onclick="addCustomItem('list-${id}')">+ Add Item</button>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            if(items.length > 0) items.forEach(itm => addCustomItem(`list-${id}`, itm));
+            else if (!existingId) addCustomItem(`list-${id}`);
+        }
+
+        function addCustomItem(listId, vals = null) {
+            const id = generateId();
+            const html = `
+                <div class="dynamic-item" id="${id}">
+                    <div class="item-controls"><button class="btn-mini btn-del" onclick="removeItem('${id}')">x</button></div>
+                    <div class="form-group"><input type="text" class="i-title" placeholder="Title / Role" value="${vals?.title || ''}" oninput="saveAndRender()"></div>
+                    <div class="form-group"><textarea class="i-desc" placeholder="Details" oninput="saveAndRender()">${vals?.desc || ''}</textarea></div>
+                </div>`;
+            document.getElementById(listId).insertAdjacentHTML('beforeend', html);
+            saveAndRender();
+        }
+
+        function removeItem(id) { document.getElementById(id).remove(); saveAndRender(); }
+        function removeSection(id) { if(confirm("Remove section?")) { document.getElementById(id).remove(); saveAndRender(); } }
+        function clearData() { if(confirm("Reset all data?")) { localStorage.removeItem('resumeDataUltimate'); location.reload(); } }
+
+        /* --- RENDER LOGIC --- */
+        function updateResume() {
+            // Header
+            document.getElementById('out-name').innerText = document.getElementById('inp-name').value;
+            document.getElementById('out-role').innerText = document.getElementById('inp-role').value;
+            toggleSection('sec-summary', document.getElementById('inp-summary').value, 'out-summary', formatText(document.getElementById('inp-summary').value));
+
+            // RENDER CONTACTS WITH SMART LINKS
+            const contactContainer = document.getElementById('out-contact-list');
+            contactContainer.innerHTML = '';
+            
+            document.querySelectorAll('#list-contact .dynamic-item').forEach(item => {
+                const key = item.querySelector('select').value;
+                const base = item.querySelector('.social-base').value.trim();
+                const user = item.querySelector('.social-user').value.trim();
+                const customImg = item.getAttribute('data-custom-icon');
+                const conf = socialConfig[key];
+
+                if(user) {
+                    // 1. Icon
+                    let iconHtml = '';
+                    if(key === 'custom' && customImg) {
+                        iconHtml = `<div class="icon-box"><img src="${customImg}"></div>`;
+                    } else {
+                        let cls = conf.icon;
+                        if(cls === 'fab fa-signal-messenger') cls = 'fab fa-signal-messenger'; 
+                        iconHtml = `<div class="icon-box"><i class="${cls}"></i></div>`;
+                    }
+
+                    // 2. Link Construction
+                    let displayUrl = user;
+                    let fullHref = '';
+
+                    if (conf.type === 'direct') {
+                        // Direct types (Email, Phone, Location)
+                        if (key === 'email') fullHref = `mailto:${user}`;
+                        else if (key === 'phone') fullHref = `tel:${user.replace(/[^0-9+]/g,'')}`;
+                        else if (key === 'website') {
+                            fullHref = user.startsWith('http') ? user : `https://${user}`;
+                            displayUrl = user.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                        }
+                        else fullHref = ''; // Location (no link usually)
+                    } else {
+                        // Social types (GitHub, LinkedIn, Custom)
+                        // Join Base + User
+                        let prefix = base;
+                        if(prefix && !prefix.startsWith('http')) prefix = 'https://' + prefix;
+                        fullHref = prefix + user;
+                        
+                        // For display, usually just show the username, or @username
+                        if(key === 'twitter' || key === 'instagram' || key === 'youtube') {
+                            displayUrl = user.startsWith('@') ? user : `@${user}`;
+                        } else {
+                            displayUrl = user; // clean username
+                        }
+                    }
+
+                    // 3. Render
+                    let contentHtml = displayUrl;
+                    if(fullHref) {
+                        contentHtml = `<a href="${fullHref}" target="_blank">${displayUrl}</a>`;
+                    }
+                    
+                    contactContainer.innerHTML += `<div class="contact-item">${iconHtml} ${contentHtml}</div>`;
+                }
+            });
+
+            // Skills & Langs
+            renderTags('inp-skills', 'out-skills', 'sec-skills');
+            renderTags('inp-langs', 'out-langs', 'sec-langs');
+
+            // Standard Lists
+            renderList('list-projects', 'out-projects', 'sec-projects', i => {
+                const t = i.querySelector('.i-title').value; if(!t) return '';
+                const l = i.querySelector('.i-link').value;
+                const s = i.querySelector('.i-stack').value;
+                return `<div class="res-item"><div class="res-title">${t}${l?` <a href="${l.startsWith('http')?l:'https://'+l}" target="_blank" class="project-link"><i class="fas fa-external-link-alt"></i> Link</a>`:''}</div>${s?`<div class="tech-stack">${s}</div>`:''}<div class="res-desc">${formatText(i.querySelector('.i-desc').value)}</div></div>`;
+            });
+
+            renderList('list-exp', 'out-exp', 'sec-exp', i => {
+                const t = i.querySelector('.i-title').value; const c = i.querySelector('.i-company').value; if(!t && !c) return '';
+                return `<div class="res-item"><div class="res-header"><div class="res-title">${t}</div><div class="res-date">${i.querySelector('.i-date').value}</div></div><div class="res-subtitle">${c}</div><div class="res-desc">${formatText(i.querySelector('.i-desc').value)}</div></div>`;
+            });
+
+            renderList('list-edu', 'out-edu', 'sec-edu', i => {
+                const d = i.querySelector('.i-degree').value; if(!d) return '';
+                return `<div class="res-item"><div class="res-title" style="font-size:0.95rem">${d}</div><div class="res-subtitle" style="font-size:0.9rem">${i.querySelector('.i-school').value}</div><div class="res-date">${i.querySelector('.i-date').value}</div></div>`;
+            });
+
+            // Custom Sections
+            const custOut = document.getElementById('out-custom-sections');
+            custOut.innerHTML = '';
+            document.querySelectorAll('.custom-section-block').forEach(sec => {
+                const title = sec.querySelector('.sec-title-inp').value;
+                let itemsHtml = '';
+                sec.querySelectorAll('.dynamic-item').forEach(itm => {
+                    const t = itm.querySelector('.i-title').value;
+                    const d = itm.querySelector('.i-desc').value;
+                    if(t || d) itemsHtml += `<div class="res-item"><div class="res-title" style="font-size:1rem">${t}</div><div class="res-desc">${formatText(d)}</div></div>`;
+                });
+                if(title && itemsHtml) custOut.innerHTML += `<div><div class="section-title">${title}</div>${itemsHtml}</div>`;
+            });
+        }
+
+        /* --- HELPERS --- */
+        function toggleSection(id, content, targetId, formattedContent) {
+            const el = document.getElementById(id);
+            const hasContent = (typeof content === 'string') ? content.trim().length > 0 : content;
+            if(hasContent) {
+                el.classList.remove('hidden');
+                if(targetId) document.getElementById(targetId).innerHTML = formattedContent;
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        function formatText(t) {
+            if(!t) return '';
+            let f = t.replace(/\n/g, '<br>');
+            if(t.includes('- ') || t.includes('* ')) {
+                const lines = t.split('\n');
+                let inL = false, h = '';
+                lines.forEach(l => {
+                    const tr = l.trim();
+                    if(tr.startsWith('- ') || tr.startsWith('* ')) {
+                        if(!inL) { h += '<ul>'; inL = true; }
+                        h += `<li>${tr.substring(2)}</li>`;
+                    } else {
+                        if(inL) { h += '</ul>'; inL = false; }
+                        h += `${l}<br>`;
+                    }
+                });
+                if(inL) h += '</ul>';
+                return h;
+            }
+            return f;
+        }
+
+        function renderTags(inp, out, sec) {
+            const val = document.getElementById(inp).value;
+            const div = document.getElementById(out);
+            div.innerHTML = '';
+            if(val) {
+                val.split(',').forEach(t => { if(t.trim()) div.innerHTML += `<span class="tag">${t.trim()}</span>`; });
+                toggleSection(sec, true);
+            } else toggleSection(sec, false);
+        }
+
+        function renderList(src, tgt, sec, fmt) {
+            const t = document.getElementById(tgt);
+            t.innerHTML = '';
+            let has = false;
+            document.querySelectorAll(`#${src} .dynamic-item`).forEach(i => {
+                const html = fmt(i);
+                if(html) { t.innerHTML += html; has = true; }
+            });
+            toggleSection(sec, has);
+        }
+        
+        /* --- STORAGE & MISC --- */
+        function saveToStorage() {
+            const data = {
+                inputs: {}, lists: { projects: [], experience: [], education: [], contact: [], customSec: [] },
+                color: document.getElementById('color-picker').value,
+                lang: document.getElementById('lang-selector').value,
+                photo: document.getElementById('out-img-container').style.backgroundImage
+            };
+            document.querySelectorAll('input:not([type="file"]), textarea').forEach(el => {
+                if(el.id && !el.closest('.dynamic-item')) data.inputs[el.id] = el.value;
+            });
+            ['list-projects', 'list-exp', 'list-edu'].forEach(id => {
+                data.lists[id.replace('list-', '')] = getListData(id);
+            });
+            
+            // Save Contacts (including split values)
+            const contactItems = [];
+            document.querySelectorAll('#list-contact .dynamic-item').forEach(item => {
+                contactItems.push({
+                    key: item.querySelector('select').value,
+                    base: item.querySelector('.social-base').value,
+                    user: item.querySelector('.social-user').value,
+                    customImg: item.getAttribute('data-custom-icon') || null
+                });
+            });
+            data.lists.contact = contactItems;
+
+            const custSecs = [];
+            document.querySelectorAll('.custom-section-block').forEach(sec => {
+                const items = [];
+                sec.querySelectorAll('.dynamic-item').forEach(itm => {
+                    items.push({ title: itm.querySelector('.i-title').value, desc: itm.querySelector('.i-desc').value });
+                });
+                custSecs.push({ id: sec.id, title: sec.querySelector('.sec-title-inp').value, items: items });
+            });
+            data.lists.customSec = custSecs;
+
+            localStorage.setItem('resumeDataSmart', JSON.stringify(data));
+        }
+
+        function loadFromStorage() {
+            const raw = localStorage.getItem('resumeDataSmart');
+            if(!raw) return;
+            const data = JSON.parse(raw);
+            for (const [id, val] of Object.entries(data.inputs)) { const el = document.getElementById(id); if(el) el.value = val; }
+            if(data.photo && data.photo !== 'none') { document.getElementById('out-img-container').style.backgroundImage = data.photo; document.getElementById('out-img-container').style.display = 'block'; }
+            if(data.color) { document.getElementById('color-picker').value = data.color; updateColors(); }
+            if(data.lang) { document.getElementById('lang-selector').value = data.lang; changeLanguage(); }
+            
+            restoreList('list-projects', data.lists.projects, 'projects');
+            restoreList('list-exp', data.lists.experience, 'experience');
+            restoreList('list-edu', data.lists.education, 'education');
+
+            const contactContainer = document.getElementById('list-contact');
+            contactContainer.innerHTML = '';
+            if(data.lists.contact) {
+                data.lists.contact.forEach(c => addContact(c.key, c.base, c.user, c.customImg));
+            }
+            const custArea = document.getElementById('custom-sections-area');
+            custArea.innerHTML = '';
+            if(data.lists.customSec) {
+                data.lists.customSec.forEach(sec => addCustomSection(sec.id, sec.title, sec.items));
+            }
+        }
+
+        function getListData(id) {
+            const items = [];
+            document.getElementById(id).querySelectorAll('.dynamic-item').forEach(item => {
+                const inputs = {};
+                item.querySelectorAll('input, textarea').forEach(inp => inputs[inp.className] = inp.value);
+                items.push(inputs);
+            });
+            return items;
+        }
+        function restoreList(listId, items, type) { document.getElementById(listId).innerHTML = ''; if(items) items.forEach(i => addItem(type, i)); }
+        function saveAndRender() { updateResume(); saveToStorage(); }
+        function updateColors() { const hex = document.getElementById('color-picker').value; document.documentElement.style.setProperty('--primary-color', hex); document.documentElement.style.setProperty('--accent-color', adjustColor(hex, 40)); saveAndRender(); }
+        function adjustColor(c, a) { return '#' + c.replace(/^#/, '').replace(/../g, c => ('0'+Math.min(255, Math.max(0, parseInt(c, 16) + a)).toString(16)).substr(-2)); }
+        function loadPhoto(e) { const f = e.target.files[0]; if(f) { const r = new FileReader(); r.onload = function(ev) { document.getElementById('out-img-container').style.backgroundImage = `url(${ev.target.result})`; document.getElementById('out-img-container').style.display = 'block'; saveAndRender(); }; r.readAsDataURL(f); } }
+        function changeLanguage() { currentLang = document.getElementById('lang-selector').value; document.querySelectorAll('[data-i18n]').forEach(el => { const k = el.getAttribute('data-i18n'); if(translations[currentLang][k]) el.innerText = translations[currentLang][k]; }); document.getElementById('btn-dl-text').innerText = translations[currentLang].download; saveAndRender(); }
+    </script>
+</body>
+</html>
