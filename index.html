@@ -178,6 +178,37 @@
             #resume { width: 100%; box-shadow: none; min-height: 100vh; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             @page { size: A4; margin: 0; }
         }
+
+        .btn-source {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+
+            color: white;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 6px;
+
+            text-decoration: none;
+            cursor: pointer;
+
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+
+        .btn-source:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-1px);
+        }
+
+        .btn-source i {
+            font-size: 1rem;
+        }
+
+
     </style>
 </head>
 <body>
@@ -193,11 +224,13 @@
                     <option value="de">🇩🇪 DE</option>
                 </select>
             </div>
-            <div>
-                <button>
-                    <a href="https://github.com/ed23x/builder" target="_blank" rel="noreferrer">Source Code</a>
-                </button>
-            </div>
+            <a href="https://github.com/ed23x/builder"
+               target="_blank"
+               rel="noreferrer"
+               class="btn-source">
+                <i class="fab fa-github"></i>
+                Source Code
+            </a>
         </div>
 
         <!-- DESIGN TOOLBAR -->
