@@ -110,6 +110,10 @@
         .btn-download { flex: 1; background: var(--primary-color); color: white; border: none; border-radius: 4px; padding: 12px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
         .btn-reset { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 0 15px; cursor: pointer; }
 
+        /* New Buttons for JSON */
+        .btn-action { background: #95a5a6; color: white; border: none; border-radius: 4px; padding: 0 15px; cursor: pointer; transition: background 0.2s; }
+        .btn-action:hover { background: #7f8c8d; }
+
         /* --- PREVIEW (RIGHT) --- */
         .preview-panel {
             flex: 1; padding: 40px; overflow-y: auto; background: #525659;
@@ -311,10 +315,18 @@
 
     <div class="action-bar">
         <button class="btn-reset" onclick="clearData()" title="Reset"><i class="fas fa-trash"></i></button>
+
+        <!-- NEW JSON EXPORT/IMPORT BUTTONS -->
+        <button class="btn-action" onclick="exportJSON()" title="Export JSON"><i class="fas fa-file-export"></i></button>
+        <button class="btn-action" onclick="triggerImport()" title="Import JSON"><i class="fas fa-file-import"></i></button>
+
         <button class="btn-download" onclick="downloadPDF()">
             <i class="fas fa-file-pdf"></i> <span id="btn-dl-text">Download PDF</span>
         </button>
     </div>
+
+    <!-- Hidden File Input for Import -->
+    <input type="file" id="import-json-file" accept=".json" style="display:none;" onchange="loadJSONFile(this)">
 </div>
 
 <!-- RIGHT: PREVIEW -->
@@ -684,8 +696,10 @@
         setTimeout(() => { document.title = originalTitle; }, 100);
     }
 
-    /* --- STORAGE --- */
-    function saveToStorage() {
+    /* --- STORAGE & JSON EXPORT/IMPORT --- */
+
+    // 1. Helper to gather data from DOM
+    function getFormData() {
         const data = {
             inputs: {}, lists: { projects: [], experience: [], education: [], contact: [], customSec: [] },
             color: document.getElementById('color-picker').value,
@@ -708,7 +722,50 @@
             custSecs.push({ id: sec.id, title: sec.querySelector('.sec-title-inp').value, items: items });
         });
         data.lists.customSec = custSecs;
+        return data;
+    }
+
+    function saveToStorage() {
+        const data = getFormData();
         localStorage.setItem('resumeDataUltimate', JSON.stringify(data));
+    }
+
+    // 2. Export JSON Function
+    function exportJSON() {
+        const data = getFormData();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        const name = data.inputs['inp-name'] ? data.inputs['inp-name'].replace(/\s+/g, '_').toLowerCase() : 'resume';
+        downloadAnchorNode.setAttribute("download", name + "_data.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    // 3. Import JSON Functions
+    function triggerImport() {
+        document.getElementById('import-json-file').click();
+    }
+
+    function loadJSONFile(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                // Basic validation
+                if(!data.inputs || !data.lists) throw new Error("Invalid Resume JSON format");
+
+                // Save to local storage and reload
+                localStorage.setItem('resumeDataUltimate', JSON.stringify(data));
+                location.reload();
+            } catch(err) {
+                alert("Error loading JSON: " + err.message);
+            }
+        };
+        reader.readAsText(file);
     }
 
     function loadFromStorage() {
